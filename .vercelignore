@@ -1,0 +1,13 @@
+.venv/
+venv/
+.git/
+tests/
+__pycache__/
+*.pyc
+.pytest_cache/
+models/
+.streamlit/
+app.py
+pages/
+smoke_test.py
+api/precompute.py

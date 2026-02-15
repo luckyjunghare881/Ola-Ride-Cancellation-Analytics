@@ -1,0 +1,1 @@
+{"total_bookings": 10000, "completed_rides": 6145, "canceled_rides": 3855, "cancellation_rate": 38.55, "driver_cancel_rate": 21.96, "customer_cancel_rate": 16.59, "avg_booking_value": 125.13, "avg_ride_distance": 9.55, "avg_driver_rating": 4.08, "avg_eta_pickup": 8.99, "revenue_loss_est": 480020.0}

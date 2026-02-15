@@ -20,9 +20,11 @@ env/
 *.swo
 
 # Data & Models (generated at runtime)
-data/
 models/
 *.joblib
+
+# Keep api/data (pre-computed for Vercel)
+!api/data/
 
 # OS
 .DS_Store
@@ -35,3 +37,4 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+.vercel
