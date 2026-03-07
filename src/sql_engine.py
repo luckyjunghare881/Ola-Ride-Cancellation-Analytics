@@ -161,7 +161,7 @@ class SQLEngine:
 
     def load_data(self, df: pd.DataFrame, table_name: str = "rides"):
         """Load DataFrame into in-memory SQLite database."""
-        self.conn = sqlite3.connect(":memory:")
+        self.conn = sqlite3.connect(":memory:", check_same_thread=False)
         df.to_sql(table_name, self.conn, index=False, if_exists="replace")
 
     def execute_query(self, sql: str) -> Tuple[pd.DataFrame, Optional[str]]:

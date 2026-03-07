@@ -197,7 +197,103 @@ CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0
 
 ---
 
-## 🛠️ Tech Stack
+## � How It Works — End-to-End Working Description
+
+### Data Flow Architecture
+
+```
+ ┌──────────────────────────────┐
+ │     USER INPUT               │
+ │  CSV Upload / Load Demo Data │
+ └──────────────┬───────────────┘
+                │
+                ▼
+ ┌──────────────────────────────┐
+ │   DATA PROCESSING            │
+ │   (src/data_processing.py)   │
+ │                              │
+ │  1. Validate CSV schema      │
+ │  2. Remove duplicates        │
+ │  3. Parse dates & types      │
+ │  4. Fill missing values      │
+ │  5. Engineer features:       │
+ │     BookingHour, DayOfWeek,  │
+ │     Month, IsWeekend,        │
+ │     TimePeriod, IsCanceled   │
+ │  6. Compute KPIs             │
+ └──────────────┬───────────────┘
+                │
+      Stores in Streamlit Session State:
+      df_clean, kpis, cleaning_report
+                │
+   ┌────────────┼────────────┬──────────────┐
+   ▼            ▼            ▼              ▼
+┌────────┐ ┌────────┐ ┌──────────┐ ┌────────────┐
+│ HOME   │ │  EDA   │ │ SQL PAGE │ │  ML PAGE   │
+│Dashboard│ │Insights│ │  Engine  │ │ Train &    │
+│ KPIs,  │ │ Charts │ │Pre-built │ │  Predict   │
+│ Alerts │ │Filters │ │& Custom  │ │ Clustering │
+│ Trends │ │Heatmaps│ │ Queries  │ │            │
+└────────┘ └────────┘ └──────────┘ └────────────┘
+                                          │
+                                          ▼
+                                   ┌────────────┐
+                                   │  RECO PAGE │
+                                   │ AI-Powered │
+                                   │ Action Plan│
+                                   │   Export   │
+                                   └────────────┘
+```
+
+### Step-by-Step Workflow
+
+#### Step 1: Data Loading
+When you launch the app, you have two options:
+- **Upload CSV**: Upload your own OLA ride data file. The app validates that required columns (`BookingID`, `BookingDate`, `RideStatus`) exist.
+- **Load Demo Data**: Generates 12,000 synthetic ride records with realistic distributions for locations (Koramangala, Indiranagar, Whitefield, etc.), vehicle types (Mini, Sedan, SUV, Auto, Bike), payment modes, ratings, ETAs, and cancellation reasons.
+
+#### Step 2: Data Cleaning & Feature Engineering
+The `preprocess()` function automatically:
+- Removes exact duplicate rows
+- Parses `BookingDate` into datetime format
+- Fills missing numeric values (fare, distance, ratings, ETA) with column medians
+- Creates derived features: `BookingHour`, `DayOfWeek`, `Month`, `IsWeekend`, `TimePeriod` (Morning/Afternoon/Evening/Night), and binary `IsCanceled` flag
+- Generates a cleaning report showing what was modified
+
+#### Step 3: KPI Computation
+`compute_kpis()` calculates all dashboard metrics:
+- Total bookings, completed rides, canceled rides, cancellation rate (%)
+- Driver-canceled vs customer-canceled counts and rates
+- Average fare, ride distance, driver/customer ratings
+- Revenue loss estimate from canceled rides
+- Completion rate and average ETA
+
+#### Step 4: Page Navigation & Analysis
+
+**Home Dashboard** renders KPI cards with trend indicators, a daily completion-vs-cancellation bar chart, a donut chart for driver/customer cancellation breakdown, cancel reason analysis, day×hour heatmap, and a data preview table with export options. It also displays a red alert banner if any pickup location exceeds 30% cancellation rate.
+
+**EDA Insights** provides interactive Plotly visualizations with filters for ride status, vehicle type, payment mode, location, and date range. Charts include hourly/daily/monthly trends, location hotspot analysis, payment & vehicle type breakdowns, ETA distribution by ride status, and cancel reason Pareto charts.
+
+**SQL Query Engine** loads the cleaned data into an in-memory SQLite database. Users can run 11 pre-built analytical queries (cancellation summary, hourly trends, top 10 hotspots, payment mode analysis, revenue loss, ETA correlation, etc.) or write custom SQL. Only `SELECT` queries are allowed — destructive operations (`DROP`, `DELETE`, `INSERT`, `UPDATE`, `ALTER`, `CREATE`) are blocked. Results auto-visualize as bar/line charts and can be exported as CSV.
+
+**ML Predictions** offers three tabs:
+1. **Train & Evaluate**: Select RandomForest or GradientBoosting, set test split (10–40%), and train. Displays accuracy, precision, recall, F1, ROC-AUC, cross-validation score, feature importance chart, confusion matrix, and probability distribution.
+2. **Predict New Booking**: Enter ride parameters (hour, distance, fare, ratings, ETA, vehicle type, payment mode, location) and get a cancellation risk prediction: **Low** (<30%), **Medium** (30–70%), or **High** (>70%) with a visual risk gauge.
+3. **Cluster Analysis**: Runs KMeans clustering on location data to identify cancellation hotspot clusters, displayed as a scatter plot with cluster characteristics.
+
+**AI Recommendations** analyzes computed KPIs through a rule-based engine that generates 8+ categories of actionable insights: critical cancellation rate alerts, driver accountability measures, customer retention strategies, peak hour optimization, location hotspot solutions, payment mode improvements, ETA reduction tactics, and vehicle rebalancing. Each recommendation includes a priority badge (Critical/High/Medium/Low), data-driven insight, specific action, and estimated business impact. A 30-day action plan is generated, and the full report can be exported as TXT or CSV.
+
+#### Step 5: Export & Reporting
+Every page supports data export:
+- Home: Download cleaned data or canceled-only data as CSV
+- EDA: Download filtered analysis results
+- SQL: Download query results as CSV
+- ML: View and save model metrics
+- Recommendations: Export full report as TXT or CSV with KPI metrics and action items
+
+---
+
+## �🛠️ Tech Stack
 
 | Component           | Technology                          |
 |---------------------|-------------------------------------|
