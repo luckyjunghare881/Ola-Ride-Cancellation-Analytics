@@ -6,6 +6,7 @@ import json
 import os
 import sys
 import pickle
+import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -24,6 +25,38 @@ def save_json(data, filename):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False)
     print(f"  Saved {filename} ({os.path.getsize(path) / 1024:.1f} KB)")
+
+
+def _serialize_tree(tree):
+    """Serialize a single sklearn DecisionTree to a JSON-safe nested dict."""
+    t = tree.tree_
+    def _node(i):
+        if t.children_left[i] == -1:  # leaf
+            counts = t.value[i][0].tolist()
+            total = sum(counts)
+            return {"leaf": True, "proba": [c / total for c in counts]}
+        return {
+            "leaf": False,
+            "feature": int(t.feature[i]),
+            "threshold": float(t.threshold[i]),
+            "left": _node(int(t.children_left[i])),
+            "right": _node(int(t.children_right[i])),
+        }
+    return _node(0)
+
+
+def _serialize_rf_model(model, encoders, features):
+    """Serialize RandomForest model + encoders to a JSON-safe dict."""
+    trees = [_serialize_tree(est) for est in model.estimators_]
+    enc_map = {}
+    for src, le in encoders.items():
+        enc_map[src] = {cls: int(idx) for idx, cls in enumerate(le.classes_)}
+    return {
+        "features": features,
+        "n_classes": int(model.n_classes_),
+        "trees": trees,
+        "encoders": enc_map,
+    }
 
 
 def main():
@@ -75,6 +108,35 @@ def main():
 
     save_json(json.loads(df_clean.head(50).to_json(orient="records", date_format="iso")), "sample.json")
 
+    # Full dataset (compact) for client-side time filtering
+    print("Saving compact full dataset for time filtering...")
+    compact_cols = ["BookingDate","RideStatus","VehicleType","PickupLocation","PaymentMode",
+                    "RideDistance_km","BookingValue_INR","DriverRating","CustomerRating",
+                    "BookingHour","DayOfWeek","Month","IsCanceled","CancelReason"]
+    full_compact = df_clean[compact_cols].copy()
+    full_compact["BookingDate"] = pd.to_datetime(full_compact["BookingDate"]).dt.strftime("%Y-%m-%d")
+    save_json(json.loads(full_compact.to_json(orient="records")), "full_data.json")
+
+    # Heatmap: Hour x DayOfWeek cancel rates
+    print("Computing heatmap data...")
+    day_order = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    hm = df_clean.groupby(["DayOfWeek", "BookingHour"])["IsCanceled"].mean().reset_index()
+    hm["IsCanceled"] = (hm["IsCanceled"] * 100).round(1)
+    hm_out = {}
+    for day in day_order:
+        day_data = hm[hm["DayOfWeek"] == day].sort_values("BookingHour")
+        hm_out[day] = {int(r["BookingHour"]): r["IsCanceled"] for _, r in day_data.iterrows()}
+    save_json(hm_out, "heatmap.json")
+
+    # Monthly trend
+    print("Computing monthly trend...")
+    month_order = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+    monthly = df_clean.groupby("Month").agg(total=("IsCanceled","count"), canceled=("IsCanceled","sum")).reset_index()
+    monthly["cancel_rate"] = (monthly["canceled"]/monthly["total"]*100).round(2)
+    monthly["Month"] = pd.Categorical(monthly["Month"], categories=month_order, ordered=True)
+    monthly = monthly.sort_values("Month")
+    save_json(json.loads(monthly.to_json(orient="records")), "monthly.json")
+
     print("Computing SQL query results...")
     engine = SQLEngine()
     engine.load_data(df_clean)
@@ -100,7 +162,7 @@ def main():
         "feature_importance": json.loads(ml_result["feature_importance"].to_json(orient="records")),
     }, "ml_metrics.json")
 
-    # Save model as pickle for predictions
+    # Save model as pickle for local usage
     model_data = {
         "model": ml_result["model"],
         "encoders": ml_result["encoders"],
@@ -110,6 +172,13 @@ def main():
     with open(model_path, "wb") as f:
         pickle.dump(model_data, f)
     print(f"  Saved model.pkl ({os.path.getsize(model_path) / 1024:.1f} KB)")
+
+    # Export model as JSON for lightweight Vercel deployment (no sklearn needed)
+    model_json = _serialize_rf_model(
+        ml_result["model"], ml_result["encoders"], ml_result["features"]
+    )
+    save_json(model_json, "model_light.json")
+    print(f"  Saved model_light.json for Vercel (pure-Python inference)")
 
     clusters = cluster_cancellation_hotspots(df_clean, n_clusters=5)
     save_json(json.loads(clusters.to_json(orient="records")) if not clusters.empty else [], "clusters.json")

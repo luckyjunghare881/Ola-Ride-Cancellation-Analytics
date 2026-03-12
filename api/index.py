@@ -55,6 +55,11 @@ async def data_sample():
     return _load_json("sample.json")
 
 
+@app.get("/api/data/full")
+async def data_full():
+    return _load_json("full_data.json")
+
+
 @app.get("/api/eda/status-distribution")
 async def eda_status():
     return {"status_distribution": _load_json("status_dist.json")}
@@ -90,6 +95,16 @@ async def eda_reasons():
     return _load_json("reasons.json")
 
 
+@app.get("/api/eda/heatmap")
+async def eda_heatmap():
+    return _load_json("heatmap.json")
+
+
+@app.get("/api/eda/monthly")
+async def eda_monthly():
+    return _load_json("monthly.json")
+
+
 @app.get("/api/sql/prebuilt")
 async def sql_list():
     return _load_json("sql_queries.json")
@@ -123,20 +138,15 @@ async def ml_predict(
     payment_mode: str = Query(default="UPI"),
     pickup_location: str = Query(default="Koramangala"),
 ):
-    """Predict cancellation using pre-trained model."""
-    import pickle
-    model_path = os.path.join(DATA_DIR, "model.pkl")
+    """Predict cancellation using pre-exported lightweight JSON model (no sklearn needed)."""
+    model_path = os.path.join(DATA_DIR, "model_light.json")
     if not os.path.exists(model_path):
         raise HTTPException(status_code=500, detail="Model not found. Run api/precompute.py first.")
 
-    if "model_data" not in _json_cache:
-        with open(model_path, "rb") as f:
-            _json_cache["model_data"] = pickle.load(f)
-
-    md = _json_cache["model_data"]
-    model = md["model"]
-    encoders = md["encoders"]
+    md = _load_json("model_light.json")
     features = md["features"]
+    encoders = md["encoders"]
+    trees = md["trees"]
 
     # Build feature row
     row = {
@@ -152,24 +162,94 @@ async def ml_predict(
     for src, enc_name in [("VehicleType", "VehicleType_enc"),
                           ("PaymentMode", "PaymentMode_enc"),
                           ("PickupLocation", "PickupLocation_enc")]:
-        if src in encoders:
-            le = encoders[src]
-            val = vehicle_type if src == "VehicleType" else (payment_mode if src == "PaymentMode" else pickup_location)
-            row[enc_name] = int(le.transform([val])[0]) if val in le.classes_ else 0
-        else:
-            row[enc_name] = 0
+        enc = encoders.get(src, {})
+        val = vehicle_type if src == "VehicleType" else (payment_mode if src == "PaymentMode" else pickup_location)
+        row[enc_name] = enc.get(val, 0)
 
-    # Predict
-    import numpy as np
-    X = np.array([[row.get(f, 0) for f in features]])
-    proba = float(model.predict_proba(X)[0][1])
-    prediction = int(model.predict(X)[0])
+    # Pure-Python Random Forest inference
+    x = [row.get(f, 0) for f in features]
+    proba_sum = [0.0, 0.0]
+    n_trees = len(trees)
+    for tree in trees:
+        node = tree
+        while not node["leaf"]:
+            if x[node["feature"]] <= node["threshold"]:
+                node = node["left"]
+            else:
+                node = node["right"]
+        for i, p in enumerate(node["proba"]):
+            proba_sum[i] += p
+    proba = proba_sum[1] / n_trees
+
+    # Business risk overrides: strongly penalize underpriced rides.
+    # This keeps ML behavior for normal bookings and pushes suspicious price patterns
+    # into very high cancellation risk (90-100%).
+    vehicle_multiplier = {
+        "Mini": 8,
+        "Sedan": 11,
+        "SUV": 15,
+        "Auto": 7,
+        "Bike": 5,
+    }
+    multiplier = vehicle_multiplier.get(vehicle_type, 8)
+    expected_fare = 30 + (ride_distance * multiplier)
+    fare_ratio = booking_value / max(expected_fare, 1.0)
+
+    # Hard trigger: price far below expected OR long-distance ride at low price.
+    severe_underpricing = fare_ratio <= 0.55
+    long_distance_low_price = ride_distance >= 12 and fare_ratio <= 0.65
+    if severe_underpricing or long_distance_low_price:
+        # Push risk to 90-99.9% with stronger push for larger pricing mismatch.
+        mismatch = max(0.0, 0.75 - fare_ratio)
+        forced = 0.90 + min(0.099, mismatch * 0.5)
+        proba = max(proba, forced)
+    else:
+        # Attribute-aware soft adjustment so every key predictor can influence risk.
+        risk_bonus = 0.0
+        if fare_ratio < 0.75:
+            risk_bonus += 0.12
+        elif fare_ratio < 0.9:
+            risk_bonus += 0.05
+
+        if ride_distance >= 20:
+            risk_bonus += 0.07
+        elif ride_distance >= 12:
+            risk_bonus += 0.03
+
+        if eta_pickup >= 20:
+            risk_bonus += 0.08
+        elif eta_pickup >= 12:
+            risk_bonus += 0.04
+
+        if driver_rating <= 3.0:
+            risk_bonus += 0.06
+        elif driver_rating <= 3.5:
+            risk_bonus += 0.03
+
+        if customer_rating <= 3.0:
+            risk_bonus += 0.03
+
+        if booking_hour in {8, 9, 17, 18, 19}:
+            risk_bonus += 0.03
+
+        if is_weekend:
+            risk_bonus += 0.02
+
+        if payment_mode == "Cash":
+            risk_bonus += 0.02
+
+        proba = min(0.999, proba + risk_bonus)
+
+    proba = max(0.001, min(0.999, proba))
+    prediction = 1 if proba >= 0.5 else 0
     risk_level = "Low" if proba < 0.3 else ("Medium" if proba < 0.6 else "High")
 
     return {
         "cancellation_probability": round(proba, 4),
         "prediction": prediction,
         "risk_level": risk_level,
+        "expected_fare_inr": round(expected_fare, 2),
+        "fare_ratio": round(fare_ratio, 3),
     }
 
 

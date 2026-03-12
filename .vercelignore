@@ -8,6 +8,9 @@ __pycache__/
 models/
 .streamlit/
 app.py
+app_backup.py
 pages/
+src/
 smoke_test.py
 api/precompute.py
+api/data/model.pkl

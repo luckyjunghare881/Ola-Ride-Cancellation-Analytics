@@ -6,7 +6,6 @@
     <title>OLA Ride Cancellation Analytics</title>
     <link rel="icon" href="https://img.icons8.com/color/48/ola-.png">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         :root {
             --primary: #00C853; --primary-dark: #009624; --accent: #FF6B35;
@@ -24,10 +23,9 @@
         @keyframes pulse-border { 0%,100%{border-color:rgba(244,67,54,0.3)} 50%{border-color:rgba(244,67,54,0.7)} }
 
         /* SIDEBAR */
-        .sidebar { width: 280px; height: 100vh; position: fixed; left: 0; top: 0; z-index: 200; background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-dark) 100%); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: transform 0.3s ease; }
-        .sidebar-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .sidebar { width: 280px; min-height: 100vh; position: fixed; left: 0; top: 0; z-index: 100; background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-dark) 100%); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
         .sidebar-brand { padding: 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-        .sidebar-brand-icon { width: 42px; height: 42px; background: linear-gradient(135deg, #00C853, #009624); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,200,83,0.3); flex-shrink: 0; }
+        .sidebar-brand-icon { width: 42px; height: 42px; background: linear-gradient(135deg, #00C853, #009624); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px rgba(0,200,83,0.3); }
         .sidebar-brand-title { font-size: 18px; font-weight: 700; }
         .sidebar-brand-sub { font-size: 11px; color: var(--primary); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
         .sidebar-section { font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1.5px; padding: 0 16px; margin: 16px 0 8px; font-weight: 600; }
@@ -40,42 +38,11 @@
         .sidebar-status { margin: 8px 16px; padding: 10px 14px; border-radius: 10px; background: rgba(0,200,83,0.1); border: 1px solid rgba(0,200,83,0.2); }
         .sidebar-status-title { font-size: 12px; color: var(--primary); font-weight: 600; }
         .sidebar-status-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-        .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.04); margin: 10px 16px; flex-shrink: 0; }
-        .sidebar-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+        .sidebar-user { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.04); margin: 10px 16px; }
+        .sidebar-avatar { width: 36px; height: 36px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; }
         .sidebar-user-name { font-size: 13px; font-weight: 600; }
         .sidebar-user-role { font-size: 11px; color: var(--text-secondary); }
-        .sidebar-footer { text-align: center; color: var(--text-secondary); font-size: 0.7rem; padding: 10px 16px 14px; flex-shrink: 0; border-top: 1px solid var(--border); }
-        .sidebar-footer a { color: var(--primary); text-decoration: none; }
-        .sidebar-footer a:hover { text-decoration: underline; }
-
-        /* UPLOAD AREA */
-        .upload-area { margin: 8px 16px; padding: 14px; border-radius: 10px; background: rgba(33,150,243,0.08); border: 2px dashed rgba(33,150,243,0.3); cursor: pointer; text-align: center; transition: all 0.2s; }
-        .upload-area:hover { border-color: rgba(33,150,243,0.6); background: rgba(33,150,243,0.12); }
-        .upload-area.dragover { border-color: var(--primary); background: rgba(0,200,83,0.12); }
-        .upload-area.has-file { border-color: rgba(0,200,83,0.4); background: rgba(0,200,83,0.08); border-style: solid; }
-        .upload-area svg { margin-bottom: 4px; }
-        .upload-title { font-size: 12px; font-weight: 600; color: #4FC3F7; }
-        .upload-sub { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
-        .upload-area.has-file .upload-title { color: var(--primary); }
-        .upload-reset { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 6px; background: rgba(244,67,54,0.15); color: #FF7070; font-size: 10px; font-weight: 600; cursor: pointer; border: none; }
-        .upload-reset:hover { background: rgba(244,67,54,0.3); }
-
-        /* MOBILE HAMBURGER */
-        .hamburger { display: none; position: fixed; top: 14px; right: 14px; z-index: 300; width: 44px; height: 44px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
-        .hamburger span { display: block; width: 20px; height: 2px; background: var(--primary); border-radius: 2px; transition: all 0.3s; }
-        .hamburger span:nth-child(2) { margin: 5px 0; }
-        .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
-        .hamburger.open span:nth-child(2) { opacity: 0; }
-        .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
-        .sidebar-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 150; }
-
-        /* MOBILE COMPATIBILITY POPUP */
-        .mobile-tip-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 310; }
-        .mobile-tip-popup { display: none; position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(90vw, 360px); background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-card2) 100%); border: 1px solid var(--border); border-radius: 14px; padding: 18px 18px 16px; z-index: 320; box-shadow: 0 16px 40px rgba(0,0,0,0.45); }
-        .mobile-tip-popup.show, .mobile-tip-backdrop.show { display: block; }
-        .mobile-tip-close { position: absolute; top: 10px; right: 10px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border); background: rgba(255,255,255,0.06); color: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
-        .mobile-tip-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 6px; padding-right: 28px; }
-        .mobile-tip-text { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+        .sidebar-footer { text-align: center; color: #555; font-size: 0.7rem; margin-top: auto; padding: 14px 16px; }
 
         /* MAIN */
         .main { margin-left: 280px; flex: 1; min-height: 100vh; overflow-x: hidden; }
@@ -88,8 +55,7 @@
         .topbar-title { font-size: 20px; font-weight: 700; }
         .topbar-sub { font-size: 12px; color: var(--text-secondary); }
         .topbar-badges { display: inline-flex; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-        .topbar-badges span { padding: 6px 14px; font-size: 12px; color: var(--text-secondary); cursor: pointer; transition: all 0.2s; }
-        .topbar-badges span:hover { color: #FFF; }
+        .topbar-badges span { padding: 6px 14px; font-size: 12px; color: var(--text-secondary); }
         .topbar-badges span.active { background: var(--primary); color: white; }
 
         /* GRID */
@@ -112,7 +78,7 @@
         .kpi-card .change-sub { color: var(--text-secondary); font-weight: 400; }
 
         /* CARDS */
-        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; overflow: hidden; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
         .card-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
         .card-sub { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; }
         .chart-box { width: 100%; min-height: 320px; }
@@ -123,9 +89,8 @@
         .alert-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
         /* TABS */
-        .tab-bar { display: flex; background: var(--bg-dark); border-radius: 12px; padding: 4px; gap: 4px; border: 1px solid var(--border); margin-bottom: 18px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .tab-bar::-webkit-scrollbar { height: 0; }
-        .tab-bar button { border-radius: 8px; font-weight: 600; color: var(--text-secondary); background: transparent; border: none; padding: 8px 18px; cursor: pointer; font-size: 13px; white-space: nowrap; transition: all 0.2s; flex-shrink: 0; }
+        .tab-bar { display: flex; background: var(--bg-dark); border-radius: 12px; padding: 4px; gap: 4px; border: 1px solid var(--border); margin-bottom: 18px; overflow-x: auto; }
+        .tab-bar button { border-radius: 8px; font-weight: 600; color: var(--text-secondary); background: transparent; border: none; padding: 8px 18px; cursor: pointer; font-size: 13px; white-space: nowrap; transition: all 0.2s; }
         .tab-bar button:hover { color: #FFF; }
         .tab-bar button.active { background: var(--bg-card); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
         .tab-content { display: none; }
@@ -140,10 +105,9 @@
         .insight-badge { display: inline-block; margin-top: 10px; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
 
         /* TABLES */
-        .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 600px; }
-        th { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.7px; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
-        td { padding: 12px 14px; font-size: 13px; color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.04); white-space: nowrap; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.7px; padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+        td { padding: 12px 14px; font-size: 13px; color: var(--text-secondary); border-bottom: 1px solid rgba(255,255,255,0.04); }
         tr:hover td { background: rgba(0,200,83,0.04); }
 
         /* PROGRESS */
@@ -163,14 +127,14 @@
         .badge-high { background: #FFB300; }
         .badge-medium { background: #00C853; }
         .badge-low { background: #2196F3; }
-        .rec-text { margin-top: 8px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; word-break: break-word; }
-        .rec-impact { margin-top: 6px; color: var(--primary); font-size: 13px; font-weight: 500; word-break: break-word; }
+        .rec-text { margin-top: 8px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+        .rec-impact { margin-top: 6px; color: var(--primary); font-size: 13px; font-weight: 500; }
 
         /* PREDICT FORM */
         .predict-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
         .form-group { display: flex; flex-direction: column; gap: 0.3rem; }
         .form-group label { font-size: 0.85rem; color: var(--text-secondary); }
-        .form-group input, .form-group select { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem; color: #fff; font-size: 0.9rem; outline: none; appearance: none; -webkit-appearance: none; }
+        .form-group input, .form-group select { background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem; color: #fff; font-size: 0.9rem; outline: none; }
         .form-group input:focus, .form-group select:focus { border-color: var(--primary); }
         .btn { background: var(--primary); color: #fff; border: none; padding: 0.7rem 2rem; border-radius: 10px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: all 0.2s; }
         .btn:hover { background: var(--primary-dark); box-shadow: 0 0 20px rgba(0,200,83,0.3); }
@@ -181,68 +145,27 @@
         /* SQL */
         .sql-select { width: 100%; background: var(--bg-dark); border: 1px solid var(--border); border-radius: 10px; padding: 0.6rem; color: #fff; font-size: 0.9rem; margin-bottom: 1rem; outline: none; }
         .sql-select:focus { border-color: var(--primary); }
-        .sql-results { max-height: 400px; overflow: auto; -webkit-overflow-scrolling: touch; }
+        .sql-results { max-height: 400px; overflow: auto; }
 
         /* LOADING */
         .loading { text-align: center; padding: 3rem; color: #888; }
         .loading::after { content: ''; display: inline-block; width: 20px; height: 20px; border: 2px solid var(--primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 0.5rem; vertical-align: middle; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* CUSTOM DATA BANNER */
-        .custom-data-banner { background: linear-gradient(135deg, rgba(33,150,243,0.15), rgba(33,150,243,0.05)); border: 1px solid rgba(33,150,243,0.3); border-radius: 12px; padding: 10px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 13px; color: #4FC3F7; }
-
-        /* RESPONSIVE - TABLET */
-        @media (max-width: 1100px) {
-            .g4 { grid-template-columns: repeat(2, 1fr); }
-            .g3 { grid-template-columns: 1fr 1fr; }
-            .g21 { grid-template-columns: 1fr; }
-            .kpi-card .value { font-size: 26px; }
-        }
-        /* RESPONSIVE - MOBILE */
+        /* RESPONSIVE */
+        @media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: 1fr; } }
         @media (max-width: 768px) {
-            .hamburger { display: flex; }
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .sidebar-overlay.open { display: block; }
+            .sidebar { width: 0; display: none; }
             .main { margin-left: 0; }
-            .container { padding: 14px; padding-top: 60px; }
-            .g4, .g3, .g2, .g21 { grid-template-columns: 1fr; }
-            .g6 { grid-template-columns: repeat(2, 1fr); }
-            .topbar { padding: 12px 16px; flex-direction: column; align-items: flex-start; }
-            .topbar-title { font-size: 17px; }
-            .kpi-card { padding: 16px; }
-            .kpi-card .value { font-size: 24px; }
-            .card { padding: 16px; }
-            .chart-box { min-height: 260px; }
-            .tab-bar { padding: 3px; gap: 2px; }
-            .tab-bar button { padding: 7px 12px; font-size: 12px; }
-            .predict-form { grid-template-columns: 1fr; }
-            .rec-card { padding: 12px 14px; }
-            .insight-value { font-size: 18px; }
-        }
-        @media (max-width: 480px) {
-            .g6 { grid-template-columns: 1fr; }
-            .kpi-card .value { font-size: 22px; }
-            .topbar-badges span { padding: 4px 8px; font-size: 11px; }
+            .g4, .g2, .g21 { grid-template-columns: 1fr; }
+            .container { padding: 12px; }
         }
     </style>
 </head>
 <body>
 
-<!-- HAMBURGER (mobile) -->
-<button class="hamburger" id="hamburger" onclick="toggleSidebar()">
-    <span></span><span></span><span></span>
-</button>
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
-<div class="mobile-tip-backdrop" id="mobile-tip-backdrop" onclick="closeMobileCompatibilityPopup()"></div>
-<div class="mobile-tip-popup" id="mobile-tip-popup" role="dialog" aria-modal="true" aria-label="Mobile compatibility notice">
-    <button class="mobile-tip-close" type="button" aria-label="Close" onclick="closeMobileCompatibilityPopup()">&times;</button>
-    <div class="mobile-tip-title">For Better Viewing</div>
-    <div class="mobile-tip-text">This dashboard is more compatible on PC/Laptop or in your browser's Desktop Mode on mobile.</div>
-</div>
-
 <!-- ===== SIDEBAR ===== -->
-<div class="sidebar" id="sidebar">
+<div class="sidebar">
     <div class="sidebar-brand">
         <div class="sidebar-brand-icon">
             <svg viewBox="0 0 24 24" fill="white" width="24" height="24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
@@ -253,7 +176,6 @@
         </div>
     </div>
 
-    <div class="sidebar-scroll">
     <div class="sidebar-section">MAIN</div>
     <div class="sidebar-nav" id="sidebar-nav">
         <button class="active" onclick="showPage('home',this)">
@@ -279,25 +201,16 @@
     </div>
 
     <div class="sidebar-divider"></div>
-    <div class="sidebar-section">UPLOAD DATA</div>
-    <div class="upload-area" id="upload-area" onclick="document.getElementById('csv-input').click()">
-        <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleCSVUpload(event)">
-        <svg viewBox="0 0 24 24" fill="#4FC3F7" width="28" height="28"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
-        <div class="upload-title" id="upload-title">Upload Your CSV</div>
-        <div class="upload-sub" id="upload-sub">Drop or click to upload ride data</div>
-    </div>
-
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section">DATA STATUS</div>
-    <div class="sidebar-status" id="data-status-box">
-        <div class="sidebar-status-title" id="data-status-title">
+    <div class="sidebar-section">DATA</div>
+    <div class="sidebar-status">
+        <div class="sidebar-status-title">
             <svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#00C853"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
-            DEFAULT DATA
+            DATA LOADED
         </div>
         <div class="sidebar-status-sub" id="data-status">Pre-computed analytics ready</div>
     </div>
-    </div>
 
+    <div class="sidebar-divider"></div>
     <div class="sidebar-user">
         <div class="sidebar-avatar">LJ</div>
         <div>
@@ -305,11 +218,7 @@
             <div class="sidebar-user-role">Data Analyst</div>
         </div>
     </div>
-    <div class="sidebar-footer">
-        Built with FastAPI + Python<br>
-        &copy; 2026 OLA Analytics<br>
-        <a href="#" onclick="event.preventDefault()">Terms</a> &middot; <a href="#" onclick="event.preventDefault()">Privacy</a> &middot; <a href="#" onclick="event.preventDefault()">Contact</a>
-    </div>
+    <div class="sidebar-footer">Built with FastAPI + Python<br>&copy; 2026 OLA Analytics</div>
 </div>
 
 <!-- ===== MAIN CONTENT ===== -->
@@ -327,8 +236,8 @@
                 Bangalore Metro Region &middot; Analytics Dashboard
             </div>
         </div>
-        <div class="topbar-badges" id="period-filter">
-            <span data-days="1" onclick="setPeriod(1,this)">1D</span><span data-days="7" onclick="setPeriod(7,this)">7D</span><span class="active" data-days="30" onclick="setPeriod(30,this)">30D</span><span data-days="90" onclick="setPeriod(90,this)">90D</span>
+        <div class="topbar-badges">
+            <span>1D</span><span>7D</span><span class="active">30D</span><span>90D</span>
         </div>
     </div>
 
@@ -406,7 +315,7 @@
     <div class="card">
         <div class="card-title">Recent Cancellation Events</div>
         <div class="card-sub" id="table-sub">Showing data sample</div>
-        <div id="data-table" class="sql-results table-wrap"><div class="loading">Loading data...</div></div>
+        <div id="data-table" class="sql-results"><div class="loading">Loading data...</div></div>
     </div>
 </div>
 </div>
@@ -644,66 +553,12 @@ const BASE = window.location.origin;
 const DL = { paper_bgcolor:'rgba(0,0,0,0)', plot_bgcolor:'rgba(0,0,0,0)', font:{color:'#A0AEC0',size:12}, margin:{l:40,r:20,t:10,b:40}, xaxis:{gridcolor:'rgba(255,255,255,0.05)',zerolinecolor:'rgba(255,255,255,0.05)'}, yaxis:{gridcolor:'rgba(255,255,255,0.05)',zerolinecolor:'rgba(255,255,255,0.05)'}, legend:{font:{color:'#A0AEC0'}}, showlegend:true };
 const RC = {responsive:true};
 
-// ── State ──
-let customData = null;  // null = API data, object = user-uploaded
-let edaLoaded = false;
-let edaTabsRendered = { overview: false, time: false, location: false, payment: false };
-let mlLoaded = false;
-let fullDataCache = null;  // cached full dataset for time filtering
-let activePeriod = 30;     // default period
-
-// ── Chart resize helper ──
-function resizeVisibleCharts() {
-    document.querySelectorAll('.js-plotly-plot').forEach(el => {
-        if(el.offsetWidth > 0 && el.offsetHeight > 0) {
-            try { Plotly.Plots.resize(el); } catch(e) {}
-        }
-    });
-}
-
-// ── Mobile sidebar ──
-function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebar-overlay').classList.toggle('open');
-    document.getElementById('hamburger').classList.toggle('open');
-}
-function closeSidebar() {
-    if(window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.remove('open');
-        document.getElementById('sidebar-overlay').classList.remove('open');
-        document.getElementById('hamburger').classList.remove('open');
-    }
-}
-
-function showMobileCompatibilityPopup() {
-    if(window.innerWidth > 768) return;
-    const popup = document.getElementById('mobile-tip-popup');
-    const backdrop = document.getElementById('mobile-tip-backdrop');
-    if(!popup || !backdrop) return;
-    popup.classList.add('show');
-    backdrop.classList.add('show');
-}
-
-function closeMobileCompatibilityPopup() {
-    const popup = document.getElementById('mobile-tip-popup');
-    const backdrop = document.getElementById('mobile-tip-backdrop');
-    if(!popup || !backdrop) return;
-    popup.classList.remove('show');
-    backdrop.classList.remove('show');
-}
-
 // ── Navigation ──
 function showPage(id, btn) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('#sidebar-nav button').forEach(b => b.classList.remove('active'));
     document.getElementById('page-'+id).classList.add('active');
     if(btn) btn.classList.add('active');
-    closeSidebar();
-    // Lazy-load EDA on first visit
-    if(id === 'eda' && !edaLoaded) { loadEDA(); edaLoaded = true; }
-    // Lazy-load ML charts when page first becomes visible
-    if(id === 'ml' && !mlLoaded) { loadML(); mlLoaded = true; }
-    setTimeout(resizeVisibleCharts, 150);
 }
 
 function edaTab(id, btn) {
@@ -711,12 +566,6 @@ function edaTab(id, btn) {
     document.querySelectorAll('#eda-tabs button').forEach(b => b.classList.remove('active'));
     document.getElementById('eda-'+id).classList.add('active');
     btn.classList.add('active');
-    // Render tab charts lazily on first switch
-    if(!edaTabsRendered[id] && edaLoaded && _edaDataCache) {
-        renderEdaTab(id, _edaDataCache);
-        edaTabsRendered[id] = true;
-    }
-    setTimeout(resizeVisibleCharts, 150);
 }
 
 function mlTab(id, btn) {
@@ -724,238 +573,32 @@ function mlTab(id, btn) {
     document.querySelectorAll('#ml-tabs button').forEach(b => b.classList.remove('active'));
     document.getElementById('ml-'+id).classList.add('active');
     btn.classList.add('active');
-    setTimeout(resizeVisibleCharts, 150);
 }
-
-window.addEventListener('resize', function() { setTimeout(resizeVisibleCharts, 200); });
 
 async function api(path) { const r = await fetch(BASE+path); return r.json(); }
 
 function makeTable(data, maxRows) {
     if(!data||data.length===0) return '<p style="color:#888">No results</p>';
     const keys=Object.keys(data[0]);
-    let h='<div class="table-wrap"><table><thead><tr>'+keys.map(k=>'<th>'+k+'</th>').join('')+'</tr></thead><tbody>';
+    let h='<table><thead><tr>'+keys.map(k=>'<th>'+k+'</th>').join('')+'</tr></thead><tbody>';
     data.slice(0,maxRows||100).forEach(row=>{
         h+='<tr>'+keys.map(k=>{
             let v=row[k]; if(typeof v==='number') v=v%1!==0?v.toFixed(2):v;
             return '<td>'+(v??'')+'</td>';
         }).join('')+'</tr>';
     });
-    return h+'</tbody></table></div>';
+    return h+'</tbody></table>';
 }
-
-// ══════════════════════════════════════════
-// CSV UPLOAD
-// ══════════════════════════════════════════
-function handleCSVUpload(event) {
-    const file = event.target.files[0];
-    if(!file) return;
-    Papa.parse(file, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        complete: function(results) { processUploadedData(results.data, file.name); },
-        error: function(err) { alert('Error parsing CSV: ' + err.message); }
-    });
-}
-
-function processUploadedData(rows, fileName) {
-    const required = ['RideStatus','VehicleType','PickupLocation','PaymentMode','RideDistance_km','BookingValue_INR'];
-    const cols = Object.keys(rows[0] || {});
-    const missing = required.filter(c => !cols.includes(c));
-    if(missing.length) { alert('Missing required columns: ' + missing.join(', ') + '\n\nRequired: ' + required.join(', ')); return; }
-
-    rows.forEach(row => {
-        if(row.BookingDate) {
-            const d = new Date(row.BookingDate);
-            if(!isNaN(d)) {
-                row.BookingHour = d.getHours();
-                row.DayOfWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][d.getDay()];
-                row.Month = d.toISOString().slice(0,7);
-                row.IsWeekend = d.getDay()===0 || d.getDay()===6;
-            }
-        }
-        if(row.BookingHour === undefined && cols.includes('BookingHour')) { /* already present */ }
-        row.IsCanceled = (row.RideStatus||'').toLowerCase().includes('cancel') ? 1 : 0;
-    });
-
-    customData = computeAllAnalytics(rows);
-    updateUploadUI(rows.length, fileName);
-    reloadAllPages();
-}
-
-function computeAllAnalytics(rows) {
-    const total = rows.length;
-    const canceled = rows.filter(r => r.IsCanceled).length;
-    const completed = total - canceled;
-    const cancelRate = total > 0 ? +(canceled/total*100).toFixed(1) : 0;
-    const driverCancel = rows.filter(r => (r.RideStatus||'').includes('Driver')).length;
-    const driverCancelRate = total>0 ? +(driverCancel/total*100).toFixed(1) : 0;
-    const revLoss = rows.filter(r=>r.IsCanceled).reduce((s,r)=>s+(r.BookingValue_INR||0),0);
-
-    const kpis = {
-        total_bookings: total, canceled_rides: canceled, completed_rides: completed,
-        cancellation_rate: cancelRate, driver_cancel_rate: driverCancelRate,
-        revenue_loss_est: Math.round(revLoss),
-    };
-
-    // Status distribution
-    const statusDist = {};
-    rows.forEach(r => { statusDist[r.RideStatus] = (statusDist[r.RideStatus]||0)+1; });
-
-    // Hourly
-    const hMap = {};
-    rows.forEach(r => { const h=r.BookingHour; if(h===undefined) return; if(!hMap[h]) hMap[h]={BookingHour:h,total:0,canceled:0}; hMap[h].total++; if(r.IsCanceled) hMap[h].canceled++; });
-    const hourly = Object.values(hMap).sort((a,b)=>a.BookingHour-b.BookingHour);
-    hourly.forEach(h => h.cancel_rate = h.total>0 ? +(h.canceled/h.total*100).toFixed(1) : 0);
-
-    // Daily
-    const dMap = {};
-    rows.forEach(r => { const d=r.DayOfWeek; if(!d) return; if(!dMap[d]) dMap[d]={DayOfWeek:d,total:0,canceled:0}; dMap[d].total++; if(r.IsCanceled) dMap[d].canceled++; });
-    const daily = Object.values(dMap);
-    daily.forEach(d => d.cancel_rate = d.total>0 ? +(d.canceled/d.total*100).toFixed(1) : 0);
-
-    // Monthly
-    const mMap = {};
-    rows.forEach(r => { const m=r.Month; if(!m) return; if(!mMap[m]) mMap[m]={Month:m,total:0,canceled:0}; mMap[m].total++; if(r.IsCanceled) mMap[m].canceled++; });
-    const monthly = Object.values(mMap).sort((a,b)=>a.Month.localeCompare(b.Month));
-    monthly.forEach(m => m.cancel_rate = m.total>0 ? +(m.canceled/m.total*100).toFixed(1) : 0);
-
-    // Location
-    const lMap = {};
-    rows.forEach(r => { const l=r.PickupLocation; if(!l) return; if(!lMap[l]) lMap[l]={PickupLocation:l,total:0,canceled:0}; lMap[l].total++; if(r.IsCanceled) lMap[l].canceled++; });
-    const location = Object.values(lMap);
-    location.forEach(l => l.cancel_rate = l.total>0 ? +(l.canceled/l.total*100).toFixed(1) : 0);
-
-    // Payment
-    const pMap = {};
-    rows.forEach(r => { const p=r.PaymentMode; if(!p) return; if(!pMap[p]) pMap[p]={PaymentMode:p,total:0,canceled:0}; pMap[p].total++; if(r.IsCanceled) pMap[p].canceled++; });
-    const payment = Object.values(pMap);
-    payment.forEach(p => p.cancel_rate = p.total>0 ? +(p.canceled/p.total*100).toFixed(1) : 0);
-
-    // Vehicle
-    const vMap = {};
-    rows.forEach(r => { const v=r.VehicleType; if(!v) return; if(!vMap[v]) vMap[v]={VehicleType:v,total:0,canceled:0}; vMap[v].total++; if(r.IsCanceled) vMap[v].canceled++; });
-    const vehicle = Object.values(vMap);
-    vehicle.forEach(v => v.cancel_rate = v.total>0 ? +(v.canceled/v.total*100).toFixed(1) : 0);
-
-    // Reasons
-    const reasons = {};
-    rows.filter(r=>r.IsCanceled).forEach(r => { const reason=r.CancelReason||'Unknown'; reasons[reason]=(reasons[reason]||0)+1; });
-    const sortedReasons = {}; Object.entries(reasons).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>sortedReasons[k]=v);
-
-    // Heatmap
-    const heatmap = {};
-    rows.forEach(r => {
-        const d=r.DayOfWeek, h=r.BookingHour;
-        if(!d || h===undefined) return;
-        if(!heatmap[d]) heatmap[d]={};
-        if(!heatmap[d][h]) heatmap[d][h]={total:0,canceled:0};
-        heatmap[d][h].total++; if(r.IsCanceled) heatmap[d][h].canceled++;
-    });
-    const heatmapRates = {};
-    Object.keys(heatmap).forEach(d => { heatmapRates[d]={}; Object.keys(heatmap[d]).forEach(h => { const c=heatmap[d][h]; heatmapRates[d][h]=c.total>0?+(c.canceled/c.total*100).toFixed(1):0; }); });
-
-    const sample = rows.slice(0,50).map(r => ({
-        BookingID:r.BookingID||'',BookingDate:r.BookingDate||'',RideStatus:r.RideStatus,
-        VehicleType:r.VehicleType,PickupLocation:r.PickupLocation,PaymentMode:r.PaymentMode,
-        RideDistance_km:r.RideDistance_km,BookingValue_INR:r.BookingValue_INR,
-        DriverRating:r.DriverRating,CustomerRating:r.CustomerRating,
-    }));
-
-    return { kpis, status_distribution:statusDist, hourly, daily, monthly, location, payment, vehicle, reasons:sortedReasons, heatmap:heatmapRates, sample };
-}
-
-function updateUploadUI(count, fileName) {
-    document.getElementById('upload-area').classList.add('has-file');
-    document.getElementById('upload-title').textContent = fileName || 'Custom Data Loaded';
-    document.getElementById('upload-sub').innerHTML = count.toLocaleString()+' rows loaded <button class="upload-reset" onclick="resetToDefault(event)">Reset to Default</button>';
-    document.getElementById('data-status-title').innerHTML = '<svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#4FC3F7"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg> CUSTOM DATA';
-    document.getElementById('data-status').textContent = count.toLocaleString()+' rows active';
-    document.getElementById('data-status-box').style.borderColor = 'rgba(33,150,243,0.4)';
-    document.getElementById('data-status-box').style.background = 'rgba(33,150,243,0.1)';
-}
-
-function resetToDefault(event) {
-    if(event) { event.stopPropagation(); event.preventDefault(); }
-    customData = null;
-    fullDataCache = null;
-    activePeriod = 30;
-    // Reset period badges
-    document.querySelectorAll('#period-filter span').forEach(s => s.classList.remove('active'));
-    const def30 = document.querySelector('#period-filter span[data-days="30"]');
-    if(def30) def30.classList.add('active');
-    document.getElementById('csv-input').value = '';
-    document.getElementById('upload-area').classList.remove('has-file');
-    document.getElementById('upload-title').textContent = 'Upload Your CSV';
-    document.getElementById('upload-sub').textContent = 'Drop or click to upload ride data';
-    document.getElementById('data-status-title').innerHTML = '<svg style="width:14px;height:14px;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="#00C853"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> DEFAULT DATA';
-    document.getElementById('data-status').textContent = 'Pre-computed analytics ready';
-    document.getElementById('data-status-box').style.borderColor = 'rgba(0,200,83,0.2)';
-    document.getElementById('data-status-box').style.background = 'rgba(0,200,83,0.1)';
-    reloadAllPages();
-}
-
-async function reloadAllPages() {
-    edaLoaded = false;
-    edaTabsRendered = { overview: false, time: false, location: false, payment: false };
-    mlLoaded = false;
-    _edaDataCache = null;
-    await loadHome();
-    // If EDA page is currently visible, reload it
-    if(document.getElementById('page-eda').classList.contains('active')) { await loadEDA(); edaLoaded = true; }
-    if(!customData) { await loadRecommendations(); } else { loadCustomRecommendations(); }
-}
-
-function loadCustomRecommendations() {
-    const d = customData;
-    const recs = [];
-    if(d.kpis.cancellation_rate > 30) recs.push({priority:'Critical',category:'High Cancellation Rate',insight:'Overall cancellation rate is '+d.kpis.cancellation_rate+'%, well above the 20% threshold.',recommendation:'Implement surge pricing incentives for drivers during peak hours and improve ETA accuracy.',impact:'Could reduce cancellations by 15-25%'});
-    if(d.kpis.driver_cancel_rate > 15) recs.push({priority:'High',category:'Driver Cancellations',insight:'Driver-initiated cancellations account for '+d.kpis.driver_cancel_rate+'% of all bookings.',recommendation:'Introduce driver penalty system and bonus incentives for completed rides.',impact:'Potential 10-15% reduction in driver cancellations'});
-    const hotLoc = [...d.location].sort((a,b)=>b.cancel_rate-a.cancel_rate);
-    if(hotLoc.length && hotLoc[0].cancel_rate > 25) recs.push({priority:'High',category:'Location Hotspot',insight:hotLoc[0].PickupLocation+' has a '+hotLoc[0].cancel_rate+'% cancellation rate.',recommendation:'Increase driver supply and reduce wait times in high-cancellation zones.',impact:'Zone-specific improvements of 10-20%'});
-    const topReason = Object.entries(d.reasons)[0];
-    if(topReason) recs.push({priority:'Medium',category:'Top Cancel Reason',insight:'"'+topReason[0]+'" accounts for '+topReason[1]+' cancellations.',recommendation:'Address this specific issue with targeted operational improvements.',impact:'Direct reduction in the most common cancellation cause'});
-    if(d.kpis.revenue_loss_est > 50000) recs.push({priority:'Critical',category:'Revenue Impact',insight:'Estimated revenue loss is ₹'+d.kpis.revenue_loss_est.toLocaleString()+'.',recommendation:'Prioritize cancellation reduction as a key business metric.',impact:'Revenue recovery of ₹'+(d.kpis.revenue_loss_est*0.3).toLocaleString()+' with 30% improvement'});
-    recs.push({priority:'Low',category:'Data Monitoring',insight:'Custom dataset of '+d.kpis.total_bookings.toLocaleString()+' bookings analyzed.',recommendation:'Continue monitoring trends and compare with historical data.',impact:'Ongoing visibility into cancellation patterns'});
-    renderRecommendations({recommendations:recs, executive_summary:'Analysis of uploaded data with '+d.kpis.total_bookings.toLocaleString()+' bookings shows a '+d.kpis.cancellation_rate+'% cancellation rate. Revenue impact estimated at ₹'+d.kpis.revenue_loss_est.toLocaleString()+'. Key focus areas identified below.'});
-}
-
-// Drag and drop for upload area
-document.addEventListener('DOMContentLoaded', function() {
-    showMobileCompatibilityPopup();
-    const ua = document.getElementById('upload-area');
-    if(!ua) return;
-    ua.addEventListener('dragenter', function(e) { e.preventDefault(); ua.classList.add('dragover'); });
-    ua.addEventListener('dragover', function(e) { e.preventDefault(); ua.classList.add('dragover'); });
-    ua.addEventListener('dragleave', function() { ua.classList.remove('dragover'); });
-    ua.addEventListener('drop', function(e) {
-        e.preventDefault(); ua.classList.remove('dragover');
-        const file = e.dataTransfer.files[0];
-        if(file && file.name.endsWith('.csv')) {
-            const dt = new DataTransfer(); dt.items.add(file);
-            document.getElementById('csv-input').files = dt.files;
-            handleCSVUpload({target:{files:[file]}});
-        } else { alert('Please upload a .csv file'); }
-    });
-});
 
 // ══════════════════════════════════════════
 // HOME PAGE
 // ══════════════════════════════════════════
 async function loadHome() {
-    let kpis, sample, status, hourly, location, reasons, heatmap, monthly, daily;
-    if(customData) {
-        kpis=customData.kpis; sample=customData.sample; status={status_distribution:customData.status_distribution};
-        hourly=customData.hourly; location=customData.location; reasons=customData.reasons;
-        heatmap=customData.heatmap; monthly=customData.monthly; daily=customData.daily;
-    } else {
-        [kpis, sample, status, hourly, location, reasons, heatmap, monthly, daily] = await Promise.all([
-            api('/api/kpis'), api('/api/data/sample'), api('/api/eda/status-distribution'),
-            api('/api/eda/hourly'), api('/api/eda/location'), api('/api/eda/cancel-reasons'),
-            api('/api/eda/heatmap'), api('/api/eda/monthly'), api('/api/eda/daily'),
-        ]);
-    }
+    const [kpis, sample, status, hourly, location, reasons, heatmap, monthly, daily] = await Promise.all([
+        api('/api/kpis'), api('/api/data/sample'), api('/api/eda/status-distribution'),
+        api('/api/eda/hourly'), api('/api/eda/location'), api('/api/eda/cancel-reasons'),
+        api('/api/eda/heatmap'), api('/api/eda/monthly'), api('/api/eda/daily'),
+    ]);
 
     // KPI Cards
     const kpiDefs = [
@@ -1026,7 +669,7 @@ async function loadHome() {
     // Heatmap
     const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
     const hours = Array.from({length:24},(_,i)=>i);
-    const z = days.map(d => hours.map(h => heatmap[d]?.[String(h)]??heatmap[d]?.[h]??0));
+    const z = days.map(d => hours.map(h => heatmap[d]?.[h]??0));
     Plotly.newPlot('chart-heatmap', [{z, x:hours, y:days, type:'heatmap',
         colorscale:[[0,'rgba(244,67,54,0.1)'],[0.5,'rgba(244,67,54,0.5)'],[1,'rgba(244,67,54,0.95)']],
         hoverongaps:false, colorbar:{len:0.8,thickness:10}}],
@@ -1093,116 +736,84 @@ async function loadHome() {
 // ══════════════════════════════════════════
 // EDA PAGE
 // ══════════════════════════════════════════
-let _edaDataCache = null;
-
 async function loadEDA() {
-    let status, hourly, location, payment, vehicle, reasons, daily, monthly;
-    if(customData) {
-        status={status_distribution:customData.status_distribution}; hourly=customData.hourly;
-        location=customData.location; payment=customData.payment; vehicle=customData.vehicle;
-        reasons=customData.reasons; daily=customData.daily; monthly=customData.monthly;
-    } else {
-        [status, hourly, location, payment, vehicle, reasons, daily, monthly] = await Promise.all([
-            api('/api/eda/status-distribution'), api('/api/eda/hourly'), api('/api/eda/location'),
-            api('/api/eda/payment'), api('/api/eda/vehicle'), api('/api/eda/cancel-reasons'),
-            api('/api/eda/daily'), api('/api/eda/monthly'),
-        ]);
-    }
+    const [status, hourly, location, payment, vehicle, reasons, daily, monthly] = await Promise.all([
+        api('/api/eda/status-distribution'), api('/api/eda/hourly'), api('/api/eda/location'),
+        api('/api/eda/payment'), api('/api/eda/vehicle'), api('/api/eda/cancel-reasons'),
+        api('/api/eda/daily'), api('/api/eda/monthly'),
+    ]);
 
-    _edaDataCache = { status, hourly, location, payment, vehicle, reasons, daily, monthly };
+    // Status Pie
+    const sd = status.status_distribution;
+    Plotly.newPlot('chart-status-pie', [{
+        values:Object.values(sd), labels:Object.keys(sd), type:'pie', hole:0.4,
+        marker:{colors:['#4CAF50','#F44336','#FF9800','#FFB300']},
+        textinfo:'percent+label', textfont:{color:'#FFF'},
+    }], {...DL, height:350}, RC);
 
-    // Reset tab rendered state
-    edaTabsRendered = { overview: false, time: false, location: false, payment: false };
+    // Cancel breakdown
+    const cancelKeys = Object.keys(sd).filter(k=>k.toLowerCase().includes('cancel'));
+    const cancelVals = cancelKeys.map(k=>sd[k]);
+    Plotly.newPlot('chart-cancel-breakdown', [{
+        x:cancelKeys, y:cancelVals, type:'bar',
+        marker:{color:['#F44336','#FF9800','#FFB300']},
+        text:cancelVals, textposition:'outside',
+    }], {...DL, height:350}, RC);
 
-    // Render only the currently active tab
-    const activeTab = document.querySelector('#page-eda .tab-content.active');
-    const activeId = activeTab ? activeTab.id.replace('eda-','') : 'overview';
-    renderEdaTab(activeId, _edaDataCache);
-    edaTabsRendered[activeId] = true;
-}
+    // Hourly
+    Plotly.newPlot('chart-hourly', [
+        {x:hourly.map(h=>h.BookingHour), y:hourly.map(h=>h.total), type:'bar', name:'Total Bookings', marker:{color:'#00C853',opacity:0.6}},
+        {x:hourly.map(h=>h.BookingHour), y:hourly.map(h=>h.cancel_rate), type:'scatter', mode:'lines+markers', name:'Cancel Rate %', yaxis:'y2', line:{color:'#F44336',width:3}},
+    ], {...DL, height:350, xaxis:{...DL.xaxis,title:'Hour of Day'}, yaxis:{...DL.yaxis,title:'Bookings'}, yaxis2:{title:'Rate %',overlaying:'y',side:'right',gridcolor:'rgba(255,255,255,0.05)'}}, RC);
 
-function renderEdaTab(tabId, data) {
-    const { status, hourly, location, payment, vehicle, reasons, daily, monthly } = data;
+    // Daily
+    const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const sortedDaily = dayOrder.map(d => daily.find(x=>x.DayOfWeek===d)).filter(Boolean);
+    Plotly.newPlot('chart-daily', [{
+        x:sortedDaily.map(d=>d.DayOfWeek), y:sortedDaily.map(d=>d.cancel_rate), type:'bar',
+        marker:{color:sortedDaily.map(d=>d.cancel_rate), colorscale:[[0,'#00C853'],[0.5,'#FFB300'],[1,'#F44336']]},
+        text:sortedDaily.map(d=>d.cancel_rate+'%'), textposition:'outside',
+    }], {...DL, height:350, yaxis:{...DL.yaxis,title:'Cancel Rate %'}}, RC);
 
-    if(tabId === 'overview') {
-        // Status Pie
-        const sd = status.status_distribution;
-        Plotly.newPlot('chart-status-pie', [{
-            values:Object.values(sd), labels:Object.keys(sd), type:'pie', hole:0.4,
-            marker:{colors:['#4CAF50','#F44336','#FF9800','#FFB300']},
-            textinfo:'percent+label', textfont:{color:'#FFF'},
-        }], {...DL, height:350}, RC);
+    // Monthly
+    Plotly.newPlot('chart-monthly', [
+        {x:monthly.map(m=>m.Month), y:monthly.map(m=>m.total), type:'scatter', fill:'tozeroy', name:'Total Bookings', line:{color:'#00C853'}},
+        {x:monthly.map(m=>m.Month), y:monthly.map(m=>m.canceled), type:'scatter', fill:'tozeroy', name:'Canceled', line:{color:'#F44336'}},
+    ], {...DL, height:350, xaxis:{...DL.xaxis,title:'Month'}, yaxis:{...DL.yaxis,title:'Count'}}, RC);
 
-        // Cancel breakdown
-        const cancelKeys = Object.keys(sd).filter(k=>k.toLowerCase().includes('cancel'));
-        const cancelVals = cancelKeys.map(k=>sd[k]);
-        Plotly.newPlot('chart-cancel-breakdown', [{
-            x:cancelKeys, y:cancelVals, type:'bar',
-            marker:{color:['#F44336','#FF9800','#FFB300']},
-            text:cancelVals, textposition:'outside',
-        }], {...DL, height:350}, RC);
-    }
+    // Location
+    const locSorted = [...location].sort((a,b)=>a.cancel_rate-b.cancel_rate);
+    Plotly.newPlot('chart-location', [{
+        y:locSorted.map(l=>l.PickupLocation), x:locSorted.map(l=>l.cancel_rate), type:'bar', orientation:'h',
+        marker:{color:locSorted.map(l=>l.cancel_rate), colorscale:[[0,'#00C853'],[0.5,'#FFB300'],[1,'#F44336']]},
+    }], {...DL, height:500, margin:{...DL.margin,l:130}, xaxis:{...DL.xaxis,title:'Cancel Rate %'}}, RC);
 
-    if(tabId === 'time') {
-        // Hourly
-        Plotly.newPlot('chart-hourly', [
-            {x:hourly.map(h=>h.BookingHour), y:hourly.map(h=>h.total), type:'bar', name:'Total Bookings', marker:{color:'#00C853',opacity:0.6}},
-            {x:hourly.map(h=>h.BookingHour), y:hourly.map(h=>h.cancel_rate), type:'scatter', mode:'lines+markers', name:'Cancel Rate %', yaxis:'y2', line:{color:'#F44336',width:3}},
-        ], {...DL, height:350, xaxis:{...DL.xaxis,title:'Hour of Day'}, yaxis:{...DL.yaxis,title:'Bookings'}, yaxis2:{title:'Rate %',overlaying:'y',side:'right',gridcolor:'rgba(255,255,255,0.05)'}}, RC);
+    const volSorted = [...location].sort((a,b)=>a.total-b.total);
+    Plotly.newPlot('chart-location-volume', [{
+        y:volSorted.map(l=>l.PickupLocation), x:volSorted.map(l=>l.total), type:'bar', orientation:'h',
+        marker:{color:volSorted.map(l=>l.total), colorscale:'Greens'},
+    }], {...DL, height:500, margin:{...DL.margin,l:130}, xaxis:{...DL.xaxis,title:'Total Bookings'}}, RC);
 
-        // Daily
-        const dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-        const sortedDaily = dayOrder.map(d => daily.find(x=>x.DayOfWeek===d)).filter(Boolean);
-        Plotly.newPlot('chart-daily', [{
-            x:sortedDaily.map(d=>d.DayOfWeek), y:sortedDaily.map(d=>d.cancel_rate), type:'bar',
-            marker:{color:sortedDaily.map(d=>d.cancel_rate), colorscale:[[0,'#00C853'],[0.5,'#FFB300'],[1,'#F44336']]},
-            text:sortedDaily.map(d=>d.cancel_rate+'%'), textposition:'outside',
-        }], {...DL, height:350, yaxis:{...DL.yaxis,title:'Cancel Rate %'}}, RC);
+    // Payment
+    Plotly.newPlot('chart-payment', [{
+        x:payment.map(p=>p.PaymentMode), y:payment.map(p=>p.cancel_rate), type:'bar',
+        text:payment.map(p=>p.cancel_rate+'%'), textposition:'outside',
+        marker:{color:payment.map(p=>p.cancel_rate), colorscale:[[0,'#00C853'],[0.5,'#FFB300'],[1,'#F44336']]},
+    }], {...DL, height:350, yaxis:{...DL.yaxis,title:'Cancel Rate %'}}, RC);
 
-        // Monthly
-        Plotly.newPlot('chart-monthly', [
-            {x:monthly.map(m=>m.Month), y:monthly.map(m=>m.total), type:'scatter', fill:'tozeroy', name:'Total Bookings', line:{color:'#00C853'}},
-            {x:monthly.map(m=>m.Month), y:monthly.map(m=>m.canceled), type:'scatter', fill:'tozeroy', name:'Canceled', line:{color:'#F44336'}},
-        ], {...DL, height:350, xaxis:{...DL.xaxis,title:'Month'}, yaxis:{...DL.yaxis,title:'Count'}}, RC);
-    }
+    // Vehicle
+    Plotly.newPlot('chart-vehicle', [{
+        x:vehicle.map(v=>v.VehicleType), y:vehicle.map(v=>v.cancel_rate), type:'bar',
+        text:vehicle.map(v=>v.cancel_rate+'%'), textposition:'outside',
+        marker:{color:['#00C853','#FFB300','#F44336','#4FC3F7','#9C27B0']},
+    }], {...DL, height:350, yaxis:{...DL.yaxis,title:'Cancel Rate %'}}, RC);
 
-    if(tabId === 'location') {
-        // Location
-        const locSorted = [...location].sort((a,b)=>a.cancel_rate-b.cancel_rate);
-        Plotly.newPlot('chart-location', [{
-            y:locSorted.map(l=>l.PickupLocation), x:locSorted.map(l=>l.cancel_rate), type:'bar', orientation:'h',
-            marker:{color:locSorted.map(l=>l.cancel_rate), colorscale:[[0,'#00C853'],[0.5,'#FFB300'],[1,'#F44336']]},
-        }], {...DL, height:500, margin:{...DL.margin,l:130}, xaxis:{...DL.xaxis,title:'Cancel Rate %'}}, RC);
-
-        const volSorted = [...location].sort((a,b)=>a.total-b.total);
-        Plotly.newPlot('chart-location-volume', [{
-            y:volSorted.map(l=>l.PickupLocation), x:volSorted.map(l=>l.total), type:'bar', orientation:'h',
-            marker:{color:volSorted.map(l=>l.total), colorscale:'Greens'},
-        }], {...DL, height:500, margin:{...DL.margin,l:130}, xaxis:{...DL.xaxis,title:'Total Bookings'}}, RC);
-    }
-
-    if(tabId === 'payment') {
-        // Payment
-        Plotly.newPlot('chart-payment', [{
-            x:payment.map(p=>p.PaymentMode), y:payment.map(p=>p.cancel_rate), type:'bar',
-            text:payment.map(p=>p.cancel_rate+'%'), textposition:'outside',
-            marker:{color:payment.map(p=>p.cancel_rate), colorscale:[[0,'#00C853'],[0.5,'#FFB300'],[1,'#F44336']]},
-        }], {...DL, height:350, yaxis:{...DL.yaxis,title:'Cancel Rate %'}}, RC);
-
-        // Vehicle
-        Plotly.newPlot('chart-vehicle', [{
-            x:vehicle.map(v=>v.VehicleType), y:vehicle.map(v=>v.cancel_rate), type:'bar',
-            text:vehicle.map(v=>v.cancel_rate+'%'), textposition:'outside',
-            marker:{color:['#00C853','#FFB300','#F44336','#4FC3F7','#9C27B0']},
-        }], {...DL, height:350, yaxis:{...DL.yaxis,title:'Cancel Rate %'}}, RC);
-
-        // Reasons
-        const rk = Object.keys(reasons).reverse(), rv = Object.values(reasons).reverse();
-        Plotly.newPlot('chart-reasons', [{
-            y:rk, x:rv, type:'bar', orientation:'h',
-            marker:{color:rv.map((_,i)=>`hsl(${i*25},60%,55%)`)},
-        }], {...DL, height:400, margin:{...DL.margin,l:200}}, RC);
-    }
+    // Reasons
+    const rk = Object.keys(reasons).reverse(), rv = Object.values(reasons).reverse();
+    Plotly.newPlot('chart-reasons', [{
+        y:rk, x:rv, type:'bar', orientation:'h',
+        marker:{color:rv.map((_,i)=>`hsl(${i*25},60%,55%)`)},
+    }], {...DL, height:400, margin:{...DL.margin,l:200}}, RC);
 }
 
 // ══════════════════════════════════════════
@@ -1326,10 +937,6 @@ async function predict() {
 // ══════════════════════════════════════════
 async function loadRecommendations() {
     const data = await api('/api/recommendations');
-    renderRecommendations(data);
-}
-
-function renderRecommendations(data) {
 
     // Executive summary
     document.getElementById('reco-summary').innerHTML = `
@@ -1402,55 +1009,12 @@ function renderRecommendations(data) {
 }
 
 // ══════════════════════════════════════════
-// TIME PERIOD FILTER
-// ══════════════════════════════════════════
-async function setPeriod(days, btn) {
-    // Update active badge
-    document.querySelectorAll('#period-filter span').forEach(s => s.classList.remove('active'));
-    btn.classList.add('active');
-    activePeriod = days;
-
-    // Fetch full data if not cached
-    if(!fullDataCache) {
-        btn.textContent = '...';
-        fullDataCache = await api('/api/data/full');
-        btn.textContent = days + 'D';
-    }
-
-    // Find max date in dataset and filter
-    const allDates = fullDataCache.map(r => r.BookingDate);
-    const maxDate = new Date(allDates.sort().pop());
-    const cutoff = new Date(maxDate);
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().slice(0, 10);
-
-    const filtered = fullDataCache.filter(r => r.BookingDate >= cutoffStr);
-
-    if(filtered.length === 0) {
-        alert('No data found for the last ' + days + ' day(s).');
-        return;
-    }
-
-    // Compute analytics from filtered rows
-    customData = computeAllAnalytics(filtered);
-    updateUploadUI(filtered.length, 'Last ' + days + ' Days');
-
-    // Reset lazy flags and reload
-    edaLoaded = false;
-    edaTabsRendered = { overview: false, time: false, location: false, payment: false };
-    mlLoaded = false;
-    _edaDataCache = null;
-
-    await loadHome();
-    if(document.getElementById('page-eda').classList.contains('active')) { await loadEDA(); edaLoaded = true; }
-    loadCustomRecommendations();
-}
-
-// ══════════════════════════════════════════
-// INIT – EDA & ML are lazy-loaded on first visit
+// INIT
 // ══════════════════════════════════════════
 loadHome();
+loadEDA();
 loadSQL();
+loadML();
 loadRecommendations();
 </script>
 </body>
